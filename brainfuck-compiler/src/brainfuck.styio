@@ -1,0 +1,141 @@
+// Brainfuck compiler and bytecode virtual machine, implemented in Styio.
+//
+// stdin streams the Brainfuck source first. Each `,` instruction then pulls
+// one integer from the remaining stream.
+
+// Bytecode instructions are stored as interleaved [opcode, operand] pairs.
+// The compiler returns the structured tuple (status, detail, bytecode):
+//   status -1: unmatched closing bracket at source offset `detail`
+//   status -2: unmatched opening brackets; `detail` is their count
+
+// Opcodes: right=1, left=2, add=3, subtract=4, output=5, input=6,
+//          jump-if-zero=7, jump-if-nonzero=8.
+
+# compile_brainfuck : (i64, i64, list[i64]) := (source: list[char]) => {
+    status = 0
+    detail = 0
+    bytecode: list[i64] := []
+    brackets: list[i64] := []
+    source_offset = 0
+    instruction_count = 0
+
+    [...] >> ?(source_offset < source.length) => {
+        symbol = source[source_offset]
+        opcode = symbol ?= {
+            '>' => 1
+            '<' => 2
+            '+' => 3
+            '-' => 4
+            '.' => 5
+            ',' => 6
+            _ => 0
+        }
+
+        // Collapse adjacent pointer/cell operations into one instruction.
+        ?(opcode > 0) => {
+            run_length = 1
+            source_offset += 1
+            [...] >> ?(source_offset < source.length) => {
+                ?(opcode <= 4 && source[source_offset] == symbol) => {
+                    run_length += 1
+                    source_offset += 1
+                } | { ^^^ }
+            }
+            bytecode.push(opcode)
+            bytecode.push(run_length)
+            instruction_count += 1
+        }
+
+        ?(opcode == 0) => {
+            ?(symbol == '[') => {
+                brackets.push(instruction_count)
+                bytecode.push(7)
+                bytecode.push(0)
+                instruction_count += 1
+            }
+            ?(symbol == ']') => {
+                ?(brackets.length == 0) => {
+                    status = -1
+                    detail = source_offset
+                }
+                ?(brackets.length > 0) => {
+                    stack_top = brackets.length - 1
+                    opening = brackets[stack_top]
+                    brackets.pop()
+                    bytecode[1 + opening * 2] = instruction_count
+                    bytecode.push(8)
+                    bytecode.push(opening)
+                    instruction_count += 1
+                }
+            }
+            source_offset += 1
+        }
+    }
+
+    ?(status == 0 && brackets.length > 0) => {
+        status = -2
+        detail = brackets.length
+    }
+    <| (status, detail, bytecode)
+}
+
+# run_bytecode := (bytecode: list[i64]) => {
+    instruction_count = bytecode.length / 2
+
+    memory: list[i64] := [0]
+    pointer = 0
+    pc = 0
+    status = 0
+
+    [...] >> ?(pc < instruction_count) => {
+        base = pc * 2
+        opcode = bytecode[base]
+        operand = bytecode[base + 1]
+
+        ?(opcode == 1) => {
+            pointer += operand
+            [...] >> ?(pointer >= memory.length) => {
+                memory.push(0)
+            }
+        }
+        ?(opcode == 2) => {
+            pointer -= operand
+            ?(pointer < 0) => {
+                -3 -> @stderr
+                status = 3
+                pc = instruction_count
+            }
+        }
+        ?(opcode == 3) => { memory[pointer] = (memory[pointer] + operand) % 256 }
+        ?(opcode == 4) => { memory[pointer] = (memory[pointer] + 256 - (operand % 256)) % 256 }
+        ?(opcode == 5) => { memory[pointer] -> @stdout }
+        ?(opcode == 6) => {
+            @stdin >> #(input_value) => {
+                memory[pointer] = (input_value % 256 + 256) % 256
+                ^^^
+            }
+        }
+        ?(opcode == 7) => {
+            ?(memory[pointer] == 0) => { pc = operand }
+        }
+        ?(opcode == 8) => {
+            ?(memory[pointer] != 0) => { pc = operand }
+        }
+        pc += 1
+    }
+
+    <| status
+}
+
+@stdin >> #(source) => {
+    compile_result := compile_brainfuck(source.chars())
+    compile_status := compile_result[0]
+    compile_detail := compile_result[1]
+    bytecode: list[i64] := compile_result[2]
+    ?(compile_status == 0) => { run_bytecode(bytecode) }
+    ?(compile_status != 0) => {
+        compile_status -> @stderr
+        compile_detail -> @stderr
+    }
+    ^^^
+}

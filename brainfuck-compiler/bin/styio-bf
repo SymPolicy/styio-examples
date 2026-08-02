@@ -1,0 +1,43 @@
+#!/bin/sh
+set -eu
+
+if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+    echo "usage: styio-bf PROGRAM.bf [INPUT.txt]" >&2
+    exit 64
+fi
+
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+example_dir=$(CDPATH= cd -- "$script_dir/.." && pwd)
+styio_bin=${STYIO_BIN:-}
+if [ -z "$styio_bin" ]; then
+    styio_bin=$(command -v styio || true)
+fi
+program_file=$1
+
+if [ ! -f "$program_file" ]; then
+    echo "styio-bf: program not found: $program_file" >&2
+    exit 66
+fi
+
+if [ -z "$styio_bin" ] || [ ! -x "$styio_bin" ]; then
+    echo "styio-bf: styio-nightly compiler not executable; set STYIO_BIN or PATH" >&2
+    exit 69
+fi
+
+if [ "$#" -eq 2 ] && [ ! -f "$2" ]; then
+    echo "styio-bf: input not found: $2" >&2
+    exit 66
+fi
+
+python3 - "$program_file" "${2:-}" <<'PY' | "$styio_bin" --file "$example_dir/src/brainfuck.styio"
+import pathlib
+import sys
+
+source = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")
+# A scalar Styio stdin pull is line-oriented. Brainfuck treats every
+# non-command character as a comment, so flattening line endings is exact.
+print(source.replace("\r", " ").replace("\n", " "))
+if sys.argv[2]:
+    for line in pathlib.Path(sys.argv[2]).read_text(encoding="utf-8").splitlines():
+        print(int(line))
+PY
