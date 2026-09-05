@@ -1,0 +1,11 @@
+Styio Algorithm Gallery
+https://github.com/SymPolicy/styio-examples
+
+This repository generates a public gallery from algorithm sources that live in
+Unka-Malloc/styio-nightly (branch nightly), licensed under the Apache License
+2.0. Those checked-out Styio files are the source of truth. This repository
+does not maintain a hand-copied algorithm corpus.
+
+Algorithm sources displayed on the generated site remain copyright their
+original authors and are redistributed under the Apache License 2.0.
+See LICENSE and https://github.com/Unka-Malloc/styio-nightly.

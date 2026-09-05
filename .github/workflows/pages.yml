@@ -1,0 +1,61 @@
+name: Deploy gallery
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+  repository_dispatch:
+    types: [styio-algorithms-updated]
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out gallery
+        uses: actions/checkout@v4
+
+      - name: Check out styio-nightly
+        uses: actions/checkout@v4
+        with:
+          repository: Unka-Malloc/styio-nightly
+          ref: nightly
+          path: .cache/styio-nightly
+
+      - name: Generate site from Styio sources
+        run: python3 scripts/generate_gallery.py --source .cache/styio-nightly --out _site
+
+      - name: Check mapping
+        run: python3 scripts/test_gallery.py --source .cache/styio-nightly --site _site
+
+      - name: Configure Pages
+        if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

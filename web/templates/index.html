@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{title}}</title>
+  <meta name="description" content="Browsable 1:1 map of classic Styio algorithm cases from styio-nightly.">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/gallery.css">
+</head>
+<body>
+  <a class="skip" href="#gallery">Skip to algorithms</a>
+  <header class="masthead">
+    <p class="eyebrow">Styio · {{source_repo}}@{{source_ref}}</p>
+    <h1>Algorithm Gallery</h1>
+    <p class="lede">
+      Every page is generated from a case in the language tree —
+      <code>tests/algorithms/&lt;case&gt;/</code> and
+      <code>example/algorithms/*.styio</code>.
+      Browse here instead of walking GitHub files. When those sources change,
+      this site regenerates.
+    </p>
+    <p class="count"><strong>{{case_count}}</strong> mapped cases</p>
+  </header>
+
+  <section class="controls" aria-label="Filter algorithms">
+    <label class="search">
+      <span>Search</span>
+      <input id="q" type="search" placeholder="Case id, theme, C++ API, contract…" autocomplete="off">
+    </label>
+    <div class="chip-row" id="theme-filters" aria-label="Themes">{{theme_nav}}</div>
+    <div class="chip-row" id="kind-filters" aria-label="Source kinds">{{kind_nav}}</div>
+    <p class="result-meta" id="result-meta"></p>
+  </section>
+
+  <main id="gallery" class="gallery">
+    {{cards}}
+    <p class="empty" id="empty" hidden>No cases match that filter.</p>
+  </main>
+
+  <footer class="site-foot">
+    <p>{{footer}}</p>
+    <p>
+      Mapping and sync notes live in the
+      <a href="https://github.com/SymPolicy/styio-examples">styio-examples</a>
+      README. Algorithm sources stay in the language repos.
+    </p>
+  </footer>
+  <script src="assets/gallery.js"></script>
+</body>
+</html>

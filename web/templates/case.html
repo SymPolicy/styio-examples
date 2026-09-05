@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{title}}</title>
+  <meta name="description" content="Styio source and I/O contract for {{case_id}}.">
+  <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../assets/gallery.css">
+</head>
+<body class="case-page">
+  <a class="skip" href="#source">Skip to source</a>
+  <header class="case-head">
+    <nav class="crumb">
+      <a href="../../">Algorithm Gallery</a>
+      <span aria-hidden="true">/</span>
+      <span>{{theme}}</span>
+    </nav>
+    <p class="eyebrow">{{kind}} · {{theme}}</p>
+    <h1>{{case_title}}</h1>
+    <p class="case-id">Case id <code>{{case_id}}</code></p>
+    {{hero_api}}
+  </header>
+
+  <section class="contract" aria-labelledby="io-heading">
+    <h2 id="io-heading">I/O contract</h2>
+    {{io_block}}
+  </section>
+
+  <section class="source-wrap" id="source" aria-labelledby="src-heading">
+    <h2 id="src-heading">Styio source</h2>
+    {{source_tabs}}
+  </section>
+
+  {{notes}}
+
+  <section class="upstream" aria-labelledby="up-heading">
+    <h2 id="up-heading">Upstream files</h2>
+    <p>These links open the generating sources at the commit this page was built from.</p>
+    {{source_links}}
+  </section>
+
+  {{pager}}
+
+  <footer class="site-foot">
+    <p>{{footer}}</p>
+  </footer>
+  <script src="../../assets/gallery.js"></script>
+</body>
+</html>
