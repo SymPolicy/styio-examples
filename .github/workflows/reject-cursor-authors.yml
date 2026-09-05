@@ -1,0 +1,55 @@
+name: reject-cursor-authors
+
+# Guardrail: fail PRs that still contain Cursor/Cloud-Agent authored commits.
+# Human re-authored PRs (Unka-Malloc) pass. Do not merge Cursor draft PRs.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  check-authors:
+    name: no-cursor-commit-authors
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reject Cursor-authored commits on this PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const blocked = [
+              /cursor\[bot\]/i,
+              /^cursoragent$/i,
+              /^cursor$/i,
+              /@cursor\.com$/i,
+              /cursor\.bot/i,
+            ];
+            const { owner, repo } = context.repo;
+            const number = context.payload.pull_request.number;
+            const commits = await github.paginate(
+              github.rest.pulls.listCommits,
+              { owner, repo, pull_number: number, per_page: 100 }
+            );
+            const offenders = [];
+            for (const c of commits) {
+              const login = c.author?.login || '';
+              const name = c.commit?.author?.name || '';
+              const email = c.commit?.author?.email || '';
+              const committerLogin = c.committer?.login || '';
+              const hay = `${login}\n${name}\n${email}\n${committerLogin}`;
+              if (blocked.some((re) => re.test(hay))) {
+                offenders.push(`${c.sha.slice(0, 7)} author=${login || name} <${email}>`);
+              }
+            }
+            if (offenders.length) {
+              core.setFailed(
+                'This PR still has Cursor-authored commits:\n' +
+                  offenders.join('\n') +
+                  '\n\nRe-author as Unka-Malloc (close the Cursor draft; open a human-signed PR).'
+              );
+            } else {
+              core.info(`Checked ${commits.length} commit(s); no Cursor authors.`);
+            }
