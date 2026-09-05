@@ -1,0 +1,81 @@
+name: reject-ai-authors
+
+# Guardrail: fail PRs that still contain AI/bot authored commits
+# (Cursor, Claude Code, Copilot, etc.). Human re-authored PRs pass.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  check-authors:
+    name: no-ai-commit-authors
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reject AI/bot-authored commits on this PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const blocked = [
+              /cursor\[bot\]/i,
+              /^cursoragent$/i,
+              /^cursor$/i,
+              /@cursor\.com$/i,
+              /cursor\.bot/i,
+              /claude/i,
+              /anthropic/i,
+              /copilot/i,
+              /codegen\[bot\]/i,
+              /devin\[bot\]/i,
+              /swe-agent/i,
+              /openai/i,
+              /@users\.noreply\.github\.com$/i, // only paired with name checks below
+            ];
+            // Name/login/email patterns that alone prove AI authorship
+            const blockedIdentity = [
+              /cursor\[bot\]/i,
+              /^cursoragent$/i,
+              /^cursor$/i,
+              /@cursor\.com$/i,
+              /cursor\.bot/i,
+              /^claude$/i,
+              /claude\s*code/i,
+              /anthropic/i,
+              /copilot/i,
+              /codegen\[bot\]/i,
+              /devin\[bot\]/i,
+              /openai/i,
+              /chatgpt/i,
+              /gpt-?bot/i,
+            ];
+            const { owner, repo } = context.repo;
+            const number = context.payload.pull_request.number;
+            const commits = await github.paginate(
+              github.rest.pulls.listCommits,
+              { owner, repo, pull_number: number, per_page: 100 }
+            );
+            const offenders = [];
+            for (const c of commits) {
+              const login = c.author?.login || '';
+              const name = c.commit?.author?.name || '';
+              const email = c.commit?.author?.email || '';
+              const committerLogin = c.committer?.login || '';
+              const committerName = c.commit?.committer?.name || '';
+              const hay = `${login}\n${name}\n${email}\n${committerLogin}\n${committerName}`;
+              if (blockedIdentity.some((re) => re.test(hay))) {
+                offenders.push(`${c.sha.slice(0, 7)} author=${login || name} <${email}>`);
+              }
+            }
+            if (offenders.length) {
+              core.setFailed(
+                'This PR still has AI/bot-authored commits:\n' +
+                  offenders.join('\n') +
+                  '\n\nSymPolicy constitution: AI cannot sign code. Re-author as a human (e.g. Unka-Malloc) and close the AI draft PR.'
+              );
+            } else {
+              core.info(`Checked ${commits.length} commit(s); no AI/bot authors.`);
+            }
