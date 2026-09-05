@@ -43,9 +43,9 @@ only.
 
 ## Sync and deploy
 
-[`.github/workflows/pages.yml`](.github/workflows/pages.yml) is the only
-workflow. It checks out `Unka-Malloc/styio-nightly@nightly`, generates the
-static site, checks the mapping, and deploys GitHub Pages.
+[`.github/workflows/pages.yml`](.github/workflows/pages.yml) is the gallery
+sync/build/deploy workflow. It checks out `Unka-Malloc/styio-nightly@nightly`,
+generates the static site, checks the mapping, and deploys GitHub Pages.
 
 It runs on:
 
