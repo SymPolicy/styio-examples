@@ -5,3 +5,6 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .DS_Store
+
+# Private General-Auditor source evidence and local reports.
+/.general-auditor/local/
